@@ -615,24 +615,62 @@ namespace Lab5
             thresh._Dilate(5);
 
             VectorOfVectorOfPoint contours = new VectorOfVectorOfPoint();
-            CvInvoke.FindContours(thresh, contours, null, RetrType.List, ChainApproxMethod.ChainApproxSimple);
+            CvInvoke.FindContours(thresh, contours, null, RetrType.External, ChainApproxMethod.ChainApproxSimple);
             var output = MainImageExp.Convert<Bgr, byte>();
+            int[,] hierarchy = CvInvoke.FindContourTree(thresh, contours, ChainApproxMethod.ChainApproxNone);
             for (int i = 0; i < contours.Size; i++)
             {
-    
-                if (CvInvoke.ContourArea(contours[i], false) > area && CvInvoke.ContourArea(contours[i], false) < 50000) //игнорирование маленьких контуров
+                    
+                if (hierarchy[i, 3] == -1 )
                 {
-                    Rectangle rect = CvInvoke.BoundingRectangle(contours[i]);
-                    RoiList.Add(rect);
-                    output.Draw(rect, new Bgr(Color.Blue), 1);
+                    
+
+
+                    if (CvInvoke.ContourArea(contours[i], false) > area && CvInvoke.ContourArea(contours[i], false) < 50000) //игнорирование маленьких контуров
+                    {
+
+                        Rectangle rect = CvInvoke.BoundingRectangle(contours[i]);
+                        RoiList.Add(rect);
+                        output.Draw(rect, new Bgr(Color.Blue), 1);
+                    }
                 }
             }            
+            
 
             MainImageExp = output.Convert<Bgr, byte>();
             return (MainImageExp);
         }
 
-         public String Translate(Image<Bgr, byte>  roiImg, string lang)
+
+        List<Rectangle> faces = new List<Rectangle>();
+
+        public Image<Bgr, byte> Lab5Face()
+        {
+            var thresh = MainImageExp.Convert<Gray, byte>();
+            var output = MainImageExp.Convert<Bgr, byte>();
+            using (CascadeClassifier face = new CascadeClassifier("D:\\Stud\\TEMP\\tessdata\\haarcascade_frontalface_default.xml"))
+            {
+                using (Mat ugray = new Mat())
+                {
+                    CvInvoke.CvtColor(sourceImage, ugray, Emgu.CV.CvEnum.ColorConversion.Bgr2Gray);
+                    Rectangle[] facesDetected = face.DetectMultiScale(ugray, 1.1, 10, new Size(20, 20));
+                    faces.AddRange(facesDetected);
+                }
+            }
+            foreach (Rectangle rect in faces)
+                output.Draw(rect, new Bgr(Color.Yellow), 2);
+
+            MainImageExp = output.Convert<Bgr, byte>();
+            return (MainImageExp);
+
+        }
+
+        //public Image<Bgr, byte> Lab5Cam()
+        //{
+           
+        //}
+
+        public String Translate(Image<Bgr, byte>  roiImg, string lang)
         {
             Tesseract _ocr = new Tesseract("D:\\Stud\\TEMP\\tessdata", lang, OcrEngineMode.TesseractLstmCombined);
             _ocr.SetImage(roiImg);
